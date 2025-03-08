@@ -14,6 +14,8 @@ const clearSearchButton = $("#clear-search-button");
 const importFileButton = $("#import-file-button");
 const exportFileButton = $("#export-file-button");
 const fileInput = $("#file-input");
+const filenameField = $("#filename-field");
+
 var headings = [];
 var data = [];
 
@@ -47,7 +49,9 @@ importFileButton.on("click", function () {
 
 fileInput.on("change", function (event) {
 	const file = event.target.files[0];
+
 	if (!file) return;
+	filenameField.html(file.name);
 
 	const reader = new FileReader();
 	reader.onload = function (e) {
@@ -83,6 +87,6 @@ exportFileButton.on("click", function () {
 	let wb = XLSX.utils.book_new();
 	let ws = XLSX.utils.aoa_to_sheet(data);
 	XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-	XLSX.writeFile(wb, "fileName.xlsx");
+	XLSX.writeFile(wb, filenameField.html());
 });
 
