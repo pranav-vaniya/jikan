@@ -15,11 +15,15 @@ const importFileButton = $("#import-file-button");
 const exportFileButton = $("#export-file-button");
 const fileInput = $("#file-input");
 const filenameField = $("#filename-field");
+const rerenderTableButton = $("#rerender-table-button");
 
 var headings = [];
 var data = [];
+var rows = 0,
+	cols = 0;
 
 $(document).ready(function () {
+	filenameField.val("");
 	searchBox.val("");
 });
 
@@ -51,7 +55,7 @@ fileInput.on("change", function (event) {
 	const file = event.target.files[0];
 
 	if (!file) return;
-	filenameField.html(file.name);
+	filenameField.val(file.name);
 
 	const reader = new FileReader();
 	reader.onload = function (e) {
@@ -77,6 +81,8 @@ fileInput.on("change", function (event) {
 
 		headings = nestedArray[0];
 		data = nestedArray.slice(1);
+		rows = data.length;
+		cols = data[0].length;
 		fillTable(dataTable, headings, data);
 	};
 
@@ -87,6 +93,108 @@ exportFileButton.on("click", function () {
 	let wb = XLSX.utils.book_new();
 	let ws = XLSX.utils.aoa_to_sheet(data);
 	XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-	XLSX.writeFile(wb, filenameField.html());
+	XLSX.writeFile(wb, filenameField.val());
 });
+
+rerenderTableButton.on("click", function () {
+	fillTable(dataTable, headings, data);
+});
+
+function handleTableValueChange(event, i, j) {
+	data[i][j] = $("#tbody-cell-" + i + "-" + j).val();
+
+	if (event.key === "Enter") {
+		let new_i = i + 1,
+			new_j = j;
+
+		if (new_i === rows) {
+			new_i = 0;
+			new_j = j + 1;
+
+			if (new_j === cols) {
+				new_j = 0;
+			}
+		}
+
+		let targetElement = $("#tbody-cell-" + new_i + "-" + new_j);
+		let contentLength = targetElement.val().length * 2; // to ensure end
+		targetElement.focus();
+		targetElement[0].setSelectionRange(contentLength, contentLength);
+	}
+
+	if (event.key === "Tab") {
+		let new_i = i,
+			new_j = j + 1;
+
+		if (new_j === cols) {
+			new_j = 0;
+			new_i = i + 1;
+
+			if (new_i === rows) {
+				new_i = 0;
+			}
+		}
+
+		let targetElement = $("#tbody-cell-" + new_i + "-" + new_j);
+		let contentLength = targetElement.val().length * 2; // to ensure end
+		targetElement.focus();
+		targetElement[0].setSelectionRange(contentLength, contentLength);
+		event.preventDefault();
+	}
+}
+
+function fillTable(dataTable, headings, data) {
+	const headingsLength = headings.length;
+	var theadHtml = "<thead><tr>";
+
+	for (let i = 0; i < headings.length; i++) {
+		theadHtml += "<th>" + headings[i] + "</th>";
+	}
+
+	theadHtml += "</tr></thead>";
+	dataTable.html(theadHtml);
+
+	if (data.length === 0) {
+		return;
+	}
+
+	var rows = data.length,
+		cols = data[0].length,
+		i = 0,
+		j = 0;
+	var tbodyHtml = "<tbody>";
+
+	for (i = 0; i < rows; i++) {
+		if (data[i].length != headingsLength) {
+			alert("Mismatched length of data.");
+			return;
+		}
+
+		tbodyHtml += "<tr>";
+		for (j = 0; j < cols; j++) {
+			tbodyHtml +=
+				`
+				<td><input type="text" class="input-group border-0" size="1" id="tbody-cell-` +
+				i +
+				`-` +
+				j +
+				`" onkeydown="handleTableValueChange(event,` +
+				i +
+				`,` +
+				j +
+				`);" onblur="handleTableValueChange(event,` +
+				i +
+				`,` +
+				j +
+				`);" value=` +
+				data[i][j] +
+				`></td>
+			`;
+		}
+		tbodyHtml += "</tr>";
+	}
+
+	tbodyHtml += "</tbody";
+	dataTable.append(tbodyHtml);
+}
 
