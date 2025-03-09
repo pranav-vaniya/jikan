@@ -7,15 +7,21 @@ const exportFileButton = $("#export-file-button");
 const fileInput = $("#file-input");
 const filenameField = $("#filename-field");
 const emptyTableText = $("#empty-table-text");
+const sheetSelect = $("#sheet-select");
 
-var headings = [];
-var data = [];
+var headings = [],
+	allHeadings = {};
+var data = [],
+	allData = {};
+var currentSheet = "",
+	allSheets = [];
 var rows = 0,
 	cols = 0;
 
 $(document).ready(function () {
 	filenameField.val("");
 	searchBox.val("");
+	sheetSelect.hide();
 });
 
 searchBox.on("keypress", function (event) {
@@ -52,46 +58,97 @@ fileInput.on("change", function (event) {
 	reader.onload = function (e) {
 		const uintData = new Uint8Array(e.target.result);
 		const workbook = XLSX.read(uintData, { type: "array" });
-		const sheetName = workbook.SheetNames[0];
-		const sheet = workbook.Sheets[sheetName];
-		const rawArray = XLSX.utils.sheet_to_json(sheet, {
-			header: 1,
-			raw: true,
-		});
-		const maxColumns = Math.max(...rawArray.map((row) => row.length));
-		const nestedArray = rawArray.map((row) =>
-			Array.from({ length: maxColumns }, (_, i) =>
-				row[i] !== undefined ? row[i] : ""
-			)
-		);
+		allSheets = [];
 
-		if (nestedArray.length < 2) {
-			alert("Less than two rows in the selected file.");
-			return;
+		for (let i = 0; i < workbook.SheetNames.length; i++) {
+			var sheetName = workbook.SheetNames[i];
+			var sheet = workbook.Sheets[sheetName];
+			var rawArray = XLSX.utils.sheet_to_json(sheet, {
+				header: 1,
+				raw: true,
+			});
+			var maxColumns = Math.max(...rawArray.map((row) => row.length));
+			var nestedArray = rawArray.map((row) =>
+				Array.from({ length: maxColumns }, (_, i) =>
+					row[i] !== undefined ? row[i] : ""
+				)
+			);
+
+			if (nestedArray.length < 2) {
+				alert("Less than two rows in the selected file.");
+				return;
+			}
+
+			allHeadings[workbook.SheetNames[i]] = nestedArray[0];
+			allData[workbook.SheetNames[i]] = nestedArray.slice(1);
+			allSheets.push(sheetName);
 		}
 
-		headings = nestedArray[0];
-		data = nestedArray.slice(1);
+		currentSheet = workbook.SheetNames[0];
+		headings = allHeadings[currentSheet];
+		data = allData[currentSheet];
 		rows = data.length;
 		cols = data[0].length;
 		emptyTableText.hide();
 		fillTable(dataTable, headings, data);
+
+		var sheetSelectHTML = "";
+		for (let i = 0; i < workbook.SheetNames.length; i++) {
+			if (i === 0) {
+				sheetSelectHTML +=
+					`<option value="` +
+					workbook.SheetNames[i] +
+					`" selected>` +
+					workbook.SheetNames[i] +
+					`</option>`;
+			} else {
+				sheetSelectHTML +=
+					`<option value="` +
+					workbook.SheetNames[i] +
+					`">` +
+					workbook.SheetNames[i] +
+					`</option>`;
+			}
+		}
+		sheetSelect.html(sheetSelectHTML);
+		sheetSelect.show();
 	};
 
 	reader.readAsArrayBuffer(file);
 });
 
 exportFileButton.on("click", function () {
+	allData[currentSheet] = data;
+
 	if (data.length === 0) {
 		return;
 	}
 
-	let headingRow = [headings];
-	let allData = [...headingRow, ...data];
 	let wb = XLSX.utils.book_new();
-	let ws = XLSX.utils.aoa_to_sheet(allData);
-	XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
+	for (let i = 0; i < allSheets.length; i++) {
+		let currentSheetName = allSheets[i];
+		let currentSheetHeadings = [allHeadings[currentSheetName]];
+		let currentSheetData = allData[currentSheetName];
+		let allCurrentSheetData = [
+			...currentSheetHeadings,
+			...currentSheetData,
+		];
+		let ws = XLSX.utils.aoa_to_sheet(allCurrentSheetData);
+		XLSX.utils.book_append_sheet(wb, ws, currentSheetName);
+	}
 	XLSX.writeFile(wb, filenameField.val());
+});
+
+sheetSelect.on("change", function () {
+	allData[currentSheet] = data;
+
+	currentSheet = sheetSelect.val();
+	headings = allHeadings[currentSheet];
+	data = allData[currentSheet];
+	rows = data.length;
+	cols = data[0].length;
+	fillTable(dataTable, headings, data);
 });
 
 function handleTableValueChange(event, i, j) {
