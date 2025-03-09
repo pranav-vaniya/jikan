@@ -1,14 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Iansui&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Chocolate+Classical+Sans&display=swap");
 
 * {
 	font-family: "Roboto";
 }
 
 .title-text {
-	font-family: "Iansui";
+	font-family: "Chocolate Classical Sans";
 }
 
-#empty-table-text {
+.empty-table-fonts {
 	font-family: "Iansui";
+	cursor: pointer;
 }
+
