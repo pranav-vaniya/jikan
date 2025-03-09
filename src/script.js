@@ -1,12 +1,3 @@
-// initialize tooltips
-
-const tooltipTriggerList = document.querySelectorAll(
-	'[data-bs-toggle="tooltip"]'
-);
-const tooltipList = [...tooltipTriggerList].map(
-	(tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
-);
-
 // some declarations
 const dataTable = $("#data-table");
 const searchBox = $("#search-input");
@@ -15,7 +6,7 @@ const importFileButton = $("#import-file-button");
 const exportFileButton = $("#export-file-button");
 const fileInput = $("#file-input");
 const filenameField = $("#filename-field");
-const rerenderTableButton = $("#rerender-table-button");
+const emptyTableText = $("#empty-table-text");
 
 var headings = [];
 var data = [];
@@ -83,6 +74,7 @@ fileInput.on("change", function (event) {
 		data = nestedArray.slice(1);
 		rows = data.length;
 		cols = data[0].length;
+		emptyTableText.hide();
 		fillTable(dataTable, headings, data);
 	};
 
@@ -90,14 +82,16 @@ fileInput.on("change", function (event) {
 });
 
 exportFileButton.on("click", function () {
+	if (data.length === 0) {
+		return;
+	}
+
+	let headingRow = [headings];
+	let allData = [...headingRow, ...data];
 	let wb = XLSX.utils.book_new();
-	let ws = XLSX.utils.aoa_to_sheet(data);
+	let ws = XLSX.utils.aoa_to_sheet(allData);
 	XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
 	XLSX.writeFile(wb, filenameField.val());
-});
-
-rerenderTableButton.on("click", function () {
-	fillTable(dataTable, headings, data);
 });
 
 function handleTableValueChange(event, i, j) {
